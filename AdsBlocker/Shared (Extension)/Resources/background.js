@@ -9,6 +9,17 @@ import {
   RULESETS
 } from './ruleLoader.js';
 
+import {
+  getWhitelistedDomains,
+  isWhitelisted,
+  addToWhitelist,
+  removeFromWhitelist,
+  rebuildWhitelistRules,
+  getCurrentTabUrl,
+  getCurrentTabDomain,
+  extractDomain
+} from './whitelistManager.js';
+
 // Initialize rulesets when extension is installed or updated
 browser.runtime.onInstalled.addListener(async (details) => {
   console.log('Extension installed/updated:', details.reason);
@@ -16,6 +27,10 @@ browser.runtime.onInstalled.addListener(async (details) => {
   if (details.reason === 'install' || details.reason === 'update') {
     const result = await initializeRulesets();
     console.log('Rulesets initialization result:', result);
+
+    // Rebuild whitelist rules
+    const whitelistResult = await rebuildWhitelistRules();
+    console.log('Whitelist rebuild result:', whitelistResult);
   }
 });
 
@@ -50,6 +65,60 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
         case 'getRulesetInfo':
           const rulesetInfo = getRulesetInfo();
           sendResponse({ success: true, rulesetInfo });
+          break;
+
+        case 'getCurrentSite':
+          const currentDomain = await getCurrentTabDomain();
+          if (currentDomain) {
+            const whitelisted = await isWhitelisted(currentDomain);
+            sendResponse({ success: true, domain: currentDomain, isWhitelisted: whitelisted });
+          } else {
+            sendResponse({ success: false, error: 'Could not get current tab' });
+          }
+          break;
+
+        case 'getWhitelist':
+          const whitelist = await getWhitelistedDomains();
+          sendResponse({ success: true, whitelist });
+          break;
+
+        case 'toggleCurrentSiteWhitelist':
+          const tabDomain = await getCurrentTabDomain();
+          if (!tabDomain) {
+            sendResponse({ success: false, error: 'Could not get current tab' });
+            break;
+          }
+
+          const isCurrentlyWhitelisted = await isWhitelisted(tabDomain);
+          let toggleMessage;
+
+          if (isCurrentlyWhitelisted) {
+            const removeResult = await removeFromWhitelist(tabDomain);
+            if (removeResult.success) {
+              toggleMessage = `Removed ${tabDomain} from whitelist`;
+              sendResponse({ success: true, message: toggleMessage, isWhitelisted: false });
+            } else {
+              sendResponse({ success: false, error: removeResult.error });
+            }
+          } else {
+            const tabUrl = await getCurrentTabUrl();
+            const addResult = await addToWhitelist(tabUrl);
+            if (addResult.success) {
+              toggleMessage = `Added ${tabDomain} to whitelist`;
+              sendResponse({ success: true, message: toggleMessage, isWhitelisted: true });
+            } else {
+              sendResponse({ success: false, error: addResult.error });
+            }
+          }
+          break;
+
+        case 'removeFromWhitelist':
+          const removeWhitelistResult = await removeFromWhitelist(request.domain);
+          if (removeWhitelistResult.success) {
+            sendResponse({ success: true, message: `Removed ${request.domain} from whitelist` });
+          } else {
+            sendResponse({ success: false, error: removeWhitelistResult.error });
+          }
           break;
 
         // Legacy support

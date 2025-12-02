@@ -70,6 +70,31 @@
             </div>
         </section>
 
+        <!-- Whitelist Section -->
+        <section class="whitelist-section">
+            <h2 class="section-title">Current Site</h2>
+
+            <div class="current-site-info">
+                <div class="site-status">
+                    <span class="site-icon">🌐</span>
+                    <div class="site-details">
+                        <div class="site-domain" id="current-domain">Loading...</div>
+                        <div class="site-status-text" id="site-status">Checking...</div>
+                    </div>
+                </div>
+                <button class="button button-whitelist" id="toggle-whitelist">
+                    Add to Whitelist
+                </button>
+            </div>
+
+            <div class="whitelist-list" id="whitelist-container" style="display: none;">
+                <h3 class="list-title">Whitelisted Sites</h3>
+                <div class="whitelist-items" id="whitelist-items">
+                    <!-- Whitelist items will be inserted here -->
+                </div>
+            </div>
+        </section>
+
         <!-- Actions Section -->
         <section class="actions-section">
             <button class="button button-secondary" id="reset-stats">

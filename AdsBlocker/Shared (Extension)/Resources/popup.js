@@ -8,6 +8,11 @@ let totalBlockedElement;
 let adsToggleElement;
 let trackingToggleElement;
 let resetButtonElement;
+let currentDomainElement;
+let siteStatusElement;
+let toggleWhitelistButton;
+let whitelistContainer;
+let whitelistItemsElement;
 
 // Initialize popup when DOM is loaded
 document.addEventListener('DOMContentLoaded', async () => {
@@ -18,10 +23,17 @@ document.addEventListener('DOMContentLoaded', async () => {
   adsToggleElement = document.getElementById('toggle-ads');
   trackingToggleElement = document.getElementById('toggle-tracking');
   resetButtonElement = document.getElementById('reset-stats');
+  currentDomainElement = document.getElementById('current-domain');
+  siteStatusElement = document.getElementById('site-status');
+  toggleWhitelistButton = document.getElementById('toggle-whitelist');
+  whitelistContainer = document.getElementById('whitelist-container');
+  whitelistItemsElement = document.getElementById('whitelist-items');
 
   // Load initial data
   await loadStatistics();
   await loadPreferences();
+  await loadCurrentSiteInfo();
+  await loadWhitelistInfo();
 
   // Set up event listeners
   setupEventListeners();
@@ -115,6 +127,13 @@ function setupEventListeners() {
       await handleResetStatistics();
     });
   }
+
+  // Whitelist toggle button
+  if (toggleWhitelistButton) {
+    toggleWhitelistButton.addEventListener('click', async () => {
+      await handleToggleWhitelist();
+    });
+  }
 }
 
 /**
@@ -204,5 +223,151 @@ function showNotification(message, isError = false) {
     }, 3000);
   } else {
     console.log('Notification:', message);
+  }
+}
+
+/**
+ * Load current site information
+ */
+async function loadCurrentSiteInfo() {
+  try {
+    const response = await browser.runtime.sendMessage({ action: 'getCurrentSite' });
+
+    if (response.success) {
+      const { domain, isWhitelisted } = response;
+
+      if (currentDomainElement) {
+        currentDomainElement.textContent = domain || 'Unknown';
+      }
+
+      if (siteStatusElement) {
+        if (isWhitelisted) {
+          siteStatusElement.textContent = 'Protection disabled on this site';
+          siteStatusElement.className = 'site-status-text whitelisted';
+        } else {
+          siteStatusElement.textContent = 'Protected';
+          siteStatusElement.className = 'site-status-text protected';
+        }
+      }
+
+      if (toggleWhitelistButton) {
+        if (isWhitelisted) {
+          toggleWhitelistButton.textContent = 'Remove from Whitelist';
+          toggleWhitelistButton.classList.add('whitelisted');
+        } else {
+          toggleWhitelistButton.textContent = 'Add to Whitelist';
+          toggleWhitelistButton.classList.remove('whitelisted');
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Error loading current site info:', error);
+    if (currentDomainElement) {
+      currentDomainElement.textContent = 'Error loading site';
+    }
+  }
+}
+
+/**
+ * Load whitelist information
+ */
+async function loadWhitelistInfo() {
+  try {
+    const response = await browser.runtime.sendMessage({ action: 'getWhitelist' });
+
+    if (response.success) {
+      const whitelist = response.whitelist;
+
+      if (whitelist.length > 0) {
+        displayWhitelistItems(whitelist);
+        if (whitelistContainer) {
+          whitelistContainer.style.display = 'block';
+        }
+      } else {
+        if (whitelistContainer) {
+          whitelistContainer.style.display = 'none';
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Error loading whitelist:', error);
+  }
+}
+
+/**
+ * Display whitelist items
+ */
+function displayWhitelistItems(whitelist) {
+  if (!whitelistItemsElement) return;
+
+  whitelistItemsElement.innerHTML = '';
+
+  if (whitelist.length === 0) {
+    whitelistItemsElement.innerHTML = '<div class="whitelist-empty">No whitelisted sites</div>';
+    return;
+  }
+
+  whitelist.forEach(domain => {
+    const itemElement = document.createElement('div');
+    itemElement.className = 'whitelist-item';
+
+    const domainElement = document.createElement('div');
+    domainElement.className = 'whitelist-item-domain';
+    domainElement.textContent = domain;
+
+    const removeButton = document.createElement('button');
+    removeButton.className = 'whitelist-item-remove';
+    removeButton.textContent = '×';
+    removeButton.title = 'Remove from whitelist';
+    removeButton.addEventListener('click', async () => {
+      await handleRemoveFromWhitelist(domain);
+    });
+
+    itemElement.appendChild(domainElement);
+    itemElement.appendChild(removeButton);
+    whitelistItemsElement.appendChild(itemElement);
+  });
+}
+
+/**
+ * Handle whitelist toggle button click
+ */
+async function handleToggleWhitelist() {
+  try {
+    const response = await browser.runtime.sendMessage({ action: 'toggleCurrentSiteWhitelist' });
+
+    if (response.success) {
+      showNotification(response.message);
+      await loadCurrentSiteInfo();
+      await loadWhitelistInfo();
+    } else {
+      showNotification(response.error || 'Failed to update whitelist', true);
+    }
+  } catch (error) {
+    console.error('Error toggling whitelist:', error);
+    showNotification('Error updating whitelist', true);
+  }
+}
+
+/**
+ * Handle remove from whitelist
+ */
+async function handleRemoveFromWhitelist(domain) {
+  try {
+    const response = await browser.runtime.sendMessage({
+      action: 'removeFromWhitelist',
+      domain: domain
+    });
+
+    if (response.success) {
+      showNotification(`Removed ${domain} from whitelist`);
+      await loadCurrentSiteInfo();
+      await loadWhitelistInfo();
+    } else {
+      showNotification(response.error || 'Failed to remove from whitelist', true);
+    }
+  } catch (error) {
+    console.error('Error removing from whitelist:', error);
+    showNotification('Error removing from whitelist', true);
   }
 }

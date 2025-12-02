@@ -232,6 +232,133 @@ input:checked + .toggle-slider:before {
     transform: translateX(20px);
 }
 
+/* Whitelist Section */
+.whitelist-section {
+    padding: 20px;
+    border-top: 1px solid var(--border-color);
+}
+
+.current-site-info {
+    margin-bottom: 16px;
+}
+
+.site-status {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.site-icon {
+    font-size: 24px;
+}
+
+.site-details {
+    flex: 1;
+}
+
+.site-domain {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+    word-break: break-all;
+}
+
+.site-status-text {
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.site-status-text.protected {
+    color: var(--success);
+}
+
+.site-status-text.whitelisted {
+    color: var(--error);
+}
+
+.button-whitelist {
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    margin-bottom: 16px;
+}
+
+.button-whitelist:hover {
+    background-color: var(--border-color);
+}
+
+.button-whitelist.whitelisted {
+    background-color: var(--error);
+    color: white;
+    border-color: var(--error);
+}
+
+.button-whitelist.whitelisted:hover {
+    opacity: 0.9;
+}
+
+.whitelist-list {
+    margin-top: 16px;
+}
+
+.list-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.whitelist-items {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.whitelist-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px;
+    background-color: var(--bg-secondary);
+    border-radius: 8px;
+    gap: 8px;
+}
+
+.whitelist-item-domain {
+    font-size: 13px;
+    color: var(--text-primary);
+    word-break: break-all;
+    flex: 1;
+}
+
+.whitelist-item-remove {
+    background: none;
+    border: none;
+    color: var(--error);
+    cursor: pointer;
+    font-size: 18px;
+    padding: 4px;
+    line-height: 1;
+    transition: opacity 0.2s;
+}
+
+.whitelist-item-remove:hover {
+    opacity: 0.7;
+}
+
+.whitelist-empty {
+    text-align: center;
+    padding: 20px;
+    color: var(--text-secondary);
+    font-size: 13px;
+}
+
 /* Actions Section */
 .actions-section {
     padding: 0 20px 20px;
