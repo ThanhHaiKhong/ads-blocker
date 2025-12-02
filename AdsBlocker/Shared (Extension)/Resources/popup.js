@@ -14,6 +14,10 @@ let toggleWhitelistButton;
 let whitelistContainer;
 let whitelistItemsElement;
 
+// Current tab information
+let currentTabUrl = null;
+let currentTabDomain = null;
+
 // Initialize popup when DOM is loaded
 document.addEventListener('DOMContentLoaded', async () => {
   console.log('Popup loaded');
@@ -29,6 +33,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   whitelistContainer = document.getElementById('whitelist-container');
   whitelistItemsElement = document.getElementById('whitelist-items');
 
+  // Get current tab first
+  await getCurrentTab();
+
   // Load initial data
   await loadStatistics();
   await loadPreferences();
@@ -38,6 +45,48 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Set up event listeners
   setupEventListeners();
 });
+
+/**
+ * Get current tab information
+ */
+async function getCurrentTab() {
+  try {
+    const tabs = await browser.tabs.query({ active: true, currentWindow: true });
+
+    if (tabs && tabs.length > 0 && tabs[0].url) {
+      currentTabUrl = tabs[0].url;
+      currentTabDomain = extractDomainFromUrl(currentTabUrl);
+      console.log('Current tab URL:', currentTabUrl);
+      console.log('Current tab domain:', currentTabDomain);
+    } else {
+      console.warn('Could not get current tab');
+      currentTabDomain = 'Unknown';
+    }
+  } catch (error) {
+    console.error('Error getting current tab:', error);
+    currentTabDomain = 'Error';
+  }
+}
+
+/**
+ * Extract domain from URL
+ */
+function extractDomainFromUrl(url) {
+  try {
+    // Handle special URLs
+    if (url.startsWith('chrome://') || url.startsWith('about:') ||
+        url.startsWith('safari://') || url.startsWith('safari-extension://') ||
+        url.startsWith('edge://') || url.startsWith('opera://')) {
+      return 'Browser Page';
+    }
+
+    const urlObj = new URL(url);
+    return urlObj.hostname;
+  } catch (error) {
+    console.error('Error extracting domain:', error);
+    return null;
+  }
+}
 
 /**
  * Load and display statistics
@@ -231,40 +280,48 @@ function showNotification(message, isError = false) {
  */
 async function loadCurrentSiteInfo() {
   try {
-    console.log('[Popup] Loading current site information...');
-    const response = await browser.runtime.sendMessage({ action: 'getCurrentSite' });
-    console.log('[Popup] getCurrentSite response:', response);
+    // Display current domain
+    const domain = currentTabDomain || 'Unknown';
 
-    if (response.success) {
-      const { domain, isWhitelisted } = response;
+    if (currentDomainElement) {
+      currentDomainElement.textContent = domain;
+    }
 
-      // Check if this is a special page where whitelist doesn't apply
-      const isSpecialPage = domain === 'Browser Page' || domain === 'No Active Tab' || domain === 'Error';
+    // Check if this is a special page
+    const isSpecialPage = domain === 'Browser Page' || domain === 'Unknown' || domain === 'Error';
 
-      if (currentDomainElement) {
-        currentDomainElement.textContent = domain || 'Unknown';
-      }
-
+    if (isSpecialPage) {
+      // Special page - disable whitelist features
       if (siteStatusElement) {
-        if (isSpecialPage) {
-          siteStatusElement.textContent = 'Extension not available on this page';
-          siteStatusElement.className = 'site-status-text';
-        } else if (isWhitelisted) {
-          siteStatusElement.textContent = 'Protection disabled on this site';
-          siteStatusElement.className = 'site-status-text whitelisted';
-        } else {
-          siteStatusElement.textContent = 'Protected';
-          siteStatusElement.className = 'site-status-text protected';
-        }
+        siteStatusElement.textContent = 'Extension not available on this page';
+        siteStatusElement.className = 'site-status-text';
       }
-
       if (toggleWhitelistButton) {
-        // Disable button for special pages
-        if (isSpecialPage) {
-          toggleWhitelistButton.textContent = 'Not Available';
-          toggleWhitelistButton.disabled = true;
-          toggleWhitelistButton.classList.remove('whitelisted');
-        } else {
+        toggleWhitelistButton.textContent = 'Not Available';
+        toggleWhitelistButton.disabled = true;
+        toggleWhitelistButton.classList.remove('whitelisted');
+      }
+    } else {
+      // Normal page - check if whitelisted
+      try {
+        const response = await browser.runtime.sendMessage({
+          action: 'checkWhitelist',
+          domain: domain
+        });
+
+        const isWhitelisted = response.success && response.isWhitelisted;
+
+        if (siteStatusElement) {
+          if (isWhitelisted) {
+            siteStatusElement.textContent = 'Protection disabled on this site';
+            siteStatusElement.className = 'site-status-text whitelisted';
+          } else {
+            siteStatusElement.textContent = 'Protected';
+            siteStatusElement.className = 'site-status-text protected';
+          }
+        }
+
+        if (toggleWhitelistButton) {
           toggleWhitelistButton.disabled = false;
           if (isWhitelisted) {
             toggleWhitelistButton.textContent = 'Remove from Whitelist';
@@ -274,18 +331,12 @@ async function loadCurrentSiteInfo() {
             toggleWhitelistButton.classList.remove('whitelisted');
           }
         }
-      }
-    } else {
-      console.error('Failed to load current site:', response.error);
-      if (currentDomainElement) {
-        currentDomainElement.textContent = 'Unable to load';
-      }
-      if (siteStatusElement) {
-        siteStatusElement.textContent = response.error || 'Error';
-        siteStatusElement.className = 'site-status-text';
-      }
-      if (toggleWhitelistButton) {
-        toggleWhitelistButton.disabled = true;
+      } catch (error) {
+        console.error('Error checking whitelist:', error);
+        if (siteStatusElement) {
+          siteStatusElement.textContent = 'Checking...';
+          siteStatusElement.className = 'site-status-text';
+        }
       }
     }
   } catch (error) {
@@ -294,7 +345,7 @@ async function loadCurrentSiteInfo() {
       currentDomainElement.textContent = 'Error';
     }
     if (siteStatusElement) {
-      siteStatusElement.textContent = 'Failed to load site information';
+      siteStatusElement.textContent = 'Failed to load';
       siteStatusElement.className = 'site-status-text';
     }
     if (toggleWhitelistButton) {
@@ -369,7 +420,16 @@ function displayWhitelistItems(whitelist) {
  */
 async function handleToggleWhitelist() {
   try {
-    const response = await browser.runtime.sendMessage({ action: 'toggleCurrentSiteWhitelist' });
+    if (!currentTabDomain || currentTabDomain === 'Unknown' || currentTabDomain === 'Error' || currentTabDomain === 'Browser Page') {
+      showNotification('Cannot whitelist this page', true);
+      return;
+    }
+
+    const response = await browser.runtime.sendMessage({
+      action: 'toggleWhitelist',
+      domain: currentTabDomain,
+      url: currentTabUrl
+    });
 
     if (response.success) {
       showNotification(response.message);
