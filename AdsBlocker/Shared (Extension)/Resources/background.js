@@ -73,6 +73,22 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
           sendResponse({ success: true, analytics });
           break;
 
+        case 'addTestStatistics':
+          // Developer tool to add test statistics
+          const stats = await getStatistics();
+          stats.totalBlocked = (stats.totalBlocked || 0) + (request.count || 100);
+          stats.blockedByRuleset.ads_ruleset = (stats.blockedByRuleset.ads_ruleset || 0) + Math.floor((request.count || 100) * 0.6);
+          stats.blockedByRuleset.tracking_ruleset = (stats.blockedByRuleset.tracking_ruleset || 0) + Math.floor((request.count || 100) * 0.4);
+          await saveStatistics(stats);
+          sendResponse({ success: true, statistics: stats });
+          break;
+
+        case 'incrementBlock':
+          // Manual increment for testing
+          const incrementResult = await incrementBlockedCount(request.domain, request.rulesetId);
+          sendResponse({ success: true, statistics: incrementResult });
+          break;
+
         case 'checkWhitelist':
           if (request.domain) {
             const isWhitelistedDomain = await isWhitelisted(request.domain);
@@ -140,3 +156,39 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
   // Return true to indicate we'll send response asynchronously
   return true;
 });
+
+// Track blocked requests for statistics
+// Note: Safari may not support onRuleMatchedDebug, so we'll try both methods
+if (browser.declarativeNetRequest.onRuleMatchedDebug) {
+  // Chrome/Edge style
+  browser.declarativeNetRequest.onRuleMatchedDebug.addListener(async (details) => {
+    console.log('[Background] Rule matched:', details);
+
+    // Determine which ruleset was triggered
+    const ruleId = details.rule.rulesetId;
+
+    // Increment statistics
+    await incrementBlockedCount(null, ruleId);
+  });
+} else {
+  console.log('[Background] onRuleMatchedDebug not available - using alternative tracking');
+
+  // Alternative: Use webRequest to detect blocked requests (if available)
+  // This is a fallback for Safari which may not support onRuleMatchedDebug
+  if (browser.webRequest && browser.webRequest.onBeforeRequest) {
+    console.log('[Background] Using webRequest for tracking');
+
+    // This won't work perfectly in Manifest V3, but we'll try
+    // In production, statistics will need to be tracked differently
+  }
+}
+
+// Periodic statistics sync (every 30 seconds)
+setInterval(async () => {
+  try {
+    const stats = await getStatistics();
+    console.log('[Background] Current statistics:', stats);
+  } catch (error) {
+    console.error('[Background] Error syncing statistics:', error);
+  }
+}, 30000);

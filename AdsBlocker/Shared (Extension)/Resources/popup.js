@@ -193,6 +193,14 @@ function setupEventListeners() {
       await handleToggleWhitelist();
     });
   }
+
+  // Add test statistics button (developer tool)
+  const addTestStatsButton = document.getElementById('add-test-stats');
+  if (addTestStatsButton) {
+    addTestStatsButton.addEventListener('click', async () => {
+      await handleAddTestStatistics();
+    });
+  }
 }
 
 /**
@@ -492,5 +500,29 @@ async function handleRemoveFromWhitelist(domain) {
   } catch (error) {
     console.error('Error removing from whitelist:', error);
     showNotification('Error removing from whitelist', true);
+  }
+}
+
+/**
+ * Handle adding test statistics (Developer tool)
+ */
+async function handleAddTestStatistics() {
+  try {
+    console.log('[Popup] Adding test statistics...');
+
+    const response = await browser.runtime.sendMessage({
+      action: 'addTestStatistics',
+      count: 100
+    });
+
+    if (response.success) {
+      showNotification('Added 100 test blocks');
+      updateStatisticsDisplay(response.statistics);
+    } else {
+      showNotification('Failed to add test statistics', true);
+    }
+  } catch (error) {
+    console.error('Error adding test statistics:', error);
+    showNotification('Error adding test statistics', true);
   }
 }
