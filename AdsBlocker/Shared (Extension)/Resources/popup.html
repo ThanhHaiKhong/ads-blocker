@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AdsBlocker</title>
+    <link rel="stylesheet" href="popup.css">
+    <script type="module" src="popup.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <h1 class="title">AdsBlocker</h1>
+            <p class="subtitle">Fast & Private Browsing</p>
+        </header>
+
+        <!-- Notification Area -->
+        <div id="notification" class="notification" style="display: none;"></div>
+
+        <!-- Statistics Section -->
+        <section class="stats-section">
+            <div class="stat-card main-stat">
+                <div class="stat-label">Total Blocked</div>
+                <div class="stat-value" id="total-blocked">0</div>
+            </div>
+
+            <div class="stat-breakdown">
+                <div class="stat-item">
+                    <span class="stat-icon">🚫</span>
+                    <div class="stat-info">
+                        <div class="stat-name">Ads</div>
+                        <div class="stat-count" id="ads-blocked">0</div>
+                    </div>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-icon">🔒</span>
+                    <div class="stat-info">
+                        <div class="stat-name">Trackers</div>
+                        <div class="stat-count" id="tracking-blocked">0</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Controls Section -->
+        <section class="controls-section">
+            <h2 class="section-title">Protection</h2>
+
+            <div class="control-item">
+                <div class="control-info">
+                    <div class="control-name">Block Advertisements</div>
+                    <div class="control-description">Block ads from common ad networks</div>
+                </div>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="toggle-ads" checked>
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
+
+            <div class="control-item">
+                <div class="control-info">
+                    <div class="control-name">Block Trackers</div>
+                    <div class="control-description">Stop analytics and tracking scripts</div>
+                </div>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="toggle-tracking" checked>
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
+        </section>
+
+        <!-- Actions Section -->
+        <section class="actions-section">
+            <button class="button button-secondary" id="reset-stats">
+                Reset Statistics
+            </button>
+        </section>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p class="footer-text">v1.0 | Privacy Protected</p>
+        </footer>
+    </div>
+</body>
+</html>

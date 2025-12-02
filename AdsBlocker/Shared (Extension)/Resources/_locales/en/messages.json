@@ -1,0 +1,10 @@
+{
+    "extension_name": {
+        "message": "AdsBlocker",
+        "description": "The display name for the extension."
+    },
+    "extension_description": {
+        "message": "Block ads and trackers for faster, cleaner browsing. Protect your privacy while enjoying an ad-free web experience.",
+        "description": "Description of what the extension does."
+    }
+}
