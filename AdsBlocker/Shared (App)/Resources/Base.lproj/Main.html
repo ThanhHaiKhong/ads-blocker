@@ -10,11 +10,49 @@
     <script src="../Script.js" defer></script>
 </head>
 <body>
-    <img src="../Icon.png" width="128" height="128" alt="AdsBlocker Icon">
-    <p class="platform-ios">You can turn on AdsBlocker’s Safari extension in Settings.</p>
-    <p class="platform-mac state-unknown">You can turn on AdsBlocker’s extension in Safari Extensions preferences.</p>
-    <p class="platform-mac state-on">AdsBlocker’s extension is currently on. You can turn it off in Safari Extensions preferences.</p>
-    <p class="platform-mac state-off">AdsBlocker’s extension is currently off. You can turn it on in Safari Extensions preferences.</p>
-    <button class="platform-mac open-preferences">Quit and Open Safari Extensions Preferences…</button>
+    <div class="container">
+        <div class="header">
+            <img src="../Icon.png" width="128" height="128" alt="AdsBlocker Icon">
+            <h1>AdsBlocker</h1>
+        </div>
+
+        <!-- Extension Status -->
+        <div class="status-section">
+            <p class="platform-ios status-message">You can turn on AdsBlocker's Safari extension in Settings.</p>
+            <p class="platform-mac state-unknown status-message">You can turn on AdsBlocker's extension in Safari Extensions preferences.</p>
+            <p class="platform-mac state-on status-message">AdsBlocker's extension is currently on.</p>
+            <p class="platform-mac state-off status-message">AdsBlocker's extension is currently off. You can turn it on in Safari Extensions preferences.</p>
+        </div>
+
+        <!-- Statistics Section (shown when extension is enabled) -->
+        <div class="statistics-section platform-mac state-on">
+            <h2>Blocking Statistics</h2>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value" id="total-blocked">0</div>
+                    <div class="stat-label">Total Blocked</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="ads-blocked">0</div>
+                    <div class="stat-label">Ads Blocked</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="trackers-blocked">0</div>
+                    <div class="stat-label">Trackers Blocked</div>
+                </div>
+            </div>
+            <button class="refresh-button" onclick="refreshStatistics()">Refresh Statistics</button>
+        </div>
+
+        <!-- Actions Section -->
+        <div class="actions-section">
+            <button class="platform-mac open-preferences">Quit and Open Safari Extensions Preferences…</button>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <p class="version">Version 1.0</p>
+        </div>
+    </div>
 </body>
 </html>

@@ -27,13 +27,48 @@ class SafariWebExtensionHandler: NSObject, NSExtensionRequestHandling {
             message = request?.userInfo?["message"]
         }
 
-        os_log(.default, "Received message from browser.runtime.sendNativeMessage: %@ (profile: %@)", String(describing: message), profile?.uuidString ?? "none")
+        os_log(.default, "Received native message: %@ (profile: %@)", String(describing: message), profile?.uuidString ?? "none")
+
+        // Handle different message types
+        var responseData: [String: Any] = [:]
+
+        if let messageDict = message as? [String: Any],
+           let action = messageDict["action"] as? String {
+
+            os_log(.default, "Native message action: %@", action)
+
+            switch action {
+            case "getStatistics":
+                // The extension will handle this via background script
+                // This is a passthrough to trigger background.js
+                responseData = [
+                    "action": "getStatistics",
+                    "success": true
+                ]
+
+            case "ping":
+                responseData = [
+                    "action": "ping",
+                    "success": true,
+                    "message": "Native host is available"
+                ]
+
+            default:
+                responseData = [
+                    "error": "Unknown action",
+                    "success": false
+                ]
+            }
+        } else {
+            // Legacy echo behavior for compatibility
+            responseData = [ "echo": message ?? "no message" ]
+        }
 
         let response = NSExtensionItem()
         if #available(iOS 15.0, macOS 11.0, *) {
-            response.userInfo = [ SFExtensionMessageKey: [ "echo": message ] ]
+            response.userInfo = [ SFExtensionMessageKey: responseData ]
         } else {
-            response.userInfo = [ "message": [ "echo": message ] ]
+            response.userInfo = [ "message": responseData ]
         }
 
         context.completeRequest(returningItems: [ response ], completionHandler: nil)
