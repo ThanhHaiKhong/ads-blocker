@@ -6,6 +6,7 @@ import {
   incrementBlockedCount,
   resetStatistics,
   getRulesetInfo,
+  getBlockingAnalytics,
   RULESETS
 } from './ruleLoader.js';
 
@@ -65,6 +66,11 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
         case 'getRulesetInfo':
           const rulesetInfo = getRulesetInfo();
           sendResponse({ success: true, rulesetInfo });
+          break;
+
+        case 'getAnalytics':
+          const analytics = await getBlockingAnalytics();
+          sendResponse({ success: true, analytics });
           break;
 
         case 'checkWhitelist':

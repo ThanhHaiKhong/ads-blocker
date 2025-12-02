@@ -8,6 +8,22 @@ const RULESETS = {
   tracking: 'tracking_ruleset'
 };
 
+// Ruleset metadata for analytics and display
+const RULESET_INFO = {
+  ads_ruleset: {
+    name: 'Ad Blocking',
+    description: 'Blocks advertisements, sponsored content, and promotional tracking',
+    ruleCount: 51,  // 40 domain rules + 11 pattern rules
+    category: 'Ads'
+  },
+  tracking_ruleset: {
+    name: 'Tracking Protection',
+    description: 'Blocks analytics, behavioral tracking, and user profiling',
+    ruleCount: 55,  // 45 domain rules + 10 pattern rules
+    category: 'Privacy'
+  }
+};
+
 const STORAGE_KEYS = {
   preferences: 'ruleset_preferences',
   statistics: 'blocking_statistics'
@@ -174,26 +190,62 @@ async function resetStatistics() {
 }
 
 /**
- * Get ruleset information
+ * Get ruleset information with metadata
  */
 function getRulesetInfo() {
   return {
     [RULESETS.ads]: {
       id: RULESETS.ads,
+      ...RULESET_INFO.ads_ruleset,
       name: 'Advertisement Blocking',
       description: 'Blocks advertisements from common ad networks'
     },
     [RULESETS.tracking]: {
       id: RULESETS.tracking,
+      ...RULESET_INFO.tracking_ruleset,
       name: 'Tracking Protection',
       description: 'Blocks analytics and tracking scripts'
     }
   };
 }
 
+/**
+ * Get blocking effectiveness analytics
+ */
+async function getBlockingAnalytics() {
+  const stats = await getStatistics();
+  const prefs = await getRulesetPreferences();
+
+  return {
+    totalBlocked: stats.totalBlocked || 0,
+    blockedByRuleset: stats.blockedByRuleset || {},
+    activeRulesets: Object.keys(prefs).filter(key => prefs[key]),
+    totalRules: Object.values(RULESET_INFO).reduce((sum, info) => sum + info.ruleCount, 0),
+    effectiveness: {
+      adsBlockingRate: prefs[RULESETS.ads] ?
+        ((stats.blockedByRuleset[RULESETS.ads] || 0) / (stats.totalBlocked || 1) * 100).toFixed(1) : 0,
+      trackingBlockingRate: prefs[RULESETS.tracking] ?
+        ((stats.blockedByRuleset[RULESETS.tracking] || 0) / (stats.totalBlocked || 1) * 100).toFixed(1) : 0
+    },
+    topBlockedDomains: getTopBlockedDomains(stats.blockedByDomain),
+    lastReset: stats.lastReset || null
+  };
+}
+
+/**
+ * Get top blocked domains
+ */
+function getTopBlockedDomains(blockedByDomain = {}, limit = 10) {
+  return Object.entries(blockedByDomain)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, limit)
+    .map(([domain, count]) => ({ domain, count }));
+}
+
 // Export functions
 export {
   RULESETS,
+  RULESET_INFO,
   STORAGE_KEYS,
   getDefaultPreferences,
   getRulesetPreferences,
@@ -205,5 +257,7 @@ export {
   saveStatistics,
   incrementBlockedCount,
   resetStatistics,
-  getRulesetInfo
+  getRulesetInfo,
+  getBlockingAnalytics,
+  getTopBlockedDomains
 };
