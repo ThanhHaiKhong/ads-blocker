@@ -69,11 +69,16 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
         case 'getCurrentSite':
           const currentDomain = await getCurrentTabDomain();
-          if (currentDomain) {
-            const whitelisted = await isWhitelisted(currentDomain);
-            sendResponse({ success: true, domain: currentDomain, isWhitelisted: whitelisted });
+          if (currentDomain && currentDomain !== 'Error') {
+            // Don't check whitelist for special pages
+            if (currentDomain === 'Browser Page' || currentDomain === 'No Active Tab') {
+              sendResponse({ success: true, domain: currentDomain, isWhitelisted: false });
+            } else {
+              const whitelisted = await isWhitelisted(currentDomain);
+              sendResponse({ success: true, domain: currentDomain, isWhitelisted: whitelisted });
+            }
           } else {
-            sendResponse({ success: false, error: 'Could not get current tab' });
+            sendResponse({ success: false, error: 'Could not get current tab', domain: 'Error' });
           }
           break;
 

@@ -241,9 +241,10 @@ async function clearWhitelist() {
 async function getCurrentTabUrl() {
   try {
     const tabs = await browser.tabs.query({ active: true, currentWindow: true });
-    if (tabs.length > 0) {
+    if (tabs && tabs.length > 0 && tabs[0].url) {
       return tabs[0].url;
     }
+    console.warn('No active tab found or tab has no URL');
     return null;
   } catch (error) {
     console.error('Error getting current tab URL:', error);
@@ -255,11 +256,23 @@ async function getCurrentTabUrl() {
  * Get current tab domain
  */
 async function getCurrentTabDomain() {
-  const url = await getCurrentTabUrl();
-  if (url) {
-    return extractDomain(url);
+  try {
+    const url = await getCurrentTabUrl();
+    if (url) {
+      // Handle special URLs
+      if (url.startsWith('chrome://') || url.startsWith('about:') ||
+          url.startsWith('safari://') || url.startsWith('safari-extension://')) {
+        return 'Browser Page';
+      }
+
+      const domain = extractDomain(url);
+      return domain || 'Unknown';
+    }
+    return 'No Active Tab';
+  } catch (error) {
+    console.error('Error getting current tab domain:', error);
+    return 'Error';
   }
-  return null;
 }
 
 // Export functions

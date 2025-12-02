@@ -236,12 +236,18 @@ async function loadCurrentSiteInfo() {
     if (response.success) {
       const { domain, isWhitelisted } = response;
 
+      // Check if this is a special page where whitelist doesn't apply
+      const isSpecialPage = domain === 'Browser Page' || domain === 'No Active Tab' || domain === 'Error';
+
       if (currentDomainElement) {
         currentDomainElement.textContent = domain || 'Unknown';
       }
 
       if (siteStatusElement) {
-        if (isWhitelisted) {
+        if (isSpecialPage) {
+          siteStatusElement.textContent = 'Extension not available on this page';
+          siteStatusElement.className = 'site-status-text';
+        } else if (isWhitelisted) {
           siteStatusElement.textContent = 'Protection disabled on this site';
           siteStatusElement.className = 'site-status-text whitelisted';
         } else {
@@ -251,19 +257,46 @@ async function loadCurrentSiteInfo() {
       }
 
       if (toggleWhitelistButton) {
-        if (isWhitelisted) {
-          toggleWhitelistButton.textContent = 'Remove from Whitelist';
-          toggleWhitelistButton.classList.add('whitelisted');
-        } else {
-          toggleWhitelistButton.textContent = 'Add to Whitelist';
+        // Disable button for special pages
+        if (isSpecialPage) {
+          toggleWhitelistButton.textContent = 'Not Available';
+          toggleWhitelistButton.disabled = true;
           toggleWhitelistButton.classList.remove('whitelisted');
+        } else {
+          toggleWhitelistButton.disabled = false;
+          if (isWhitelisted) {
+            toggleWhitelistButton.textContent = 'Remove from Whitelist';
+            toggleWhitelistButton.classList.add('whitelisted');
+          } else {
+            toggleWhitelistButton.textContent = 'Add to Whitelist';
+            toggleWhitelistButton.classList.remove('whitelisted');
+          }
         }
+      }
+    } else {
+      console.error('Failed to load current site:', response.error);
+      if (currentDomainElement) {
+        currentDomainElement.textContent = 'Unable to load';
+      }
+      if (siteStatusElement) {
+        siteStatusElement.textContent = response.error || 'Error';
+        siteStatusElement.className = 'site-status-text';
+      }
+      if (toggleWhitelistButton) {
+        toggleWhitelistButton.disabled = true;
       }
     }
   } catch (error) {
     console.error('Error loading current site info:', error);
     if (currentDomainElement) {
-      currentDomainElement.textContent = 'Error loading site';
+      currentDomainElement.textContent = 'Error';
+    }
+    if (siteStatusElement) {
+      siteStatusElement.textContent = 'Failed to load site information';
+      siteStatusElement.className = 'site-status-text';
+    }
+    if (toggleWhitelistButton) {
+      toggleWhitelistButton.disabled = true;
     }
   }
 }
