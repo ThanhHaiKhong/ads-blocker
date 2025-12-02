@@ -231,7 +231,9 @@ function showNotification(message, isError = false) {
  */
 async function loadCurrentSiteInfo() {
   try {
+    console.log('[Popup] Loading current site information...');
     const response = await browser.runtime.sendMessage({ action: 'getCurrentSite' });
+    console.log('[Popup] getCurrentSite response:', response);
 
     if (response.success) {
       const { domain, isWhitelisted } = response;

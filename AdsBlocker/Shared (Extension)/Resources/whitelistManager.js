@@ -240,14 +240,30 @@ async function clearWhitelist() {
  */
 async function getCurrentTabUrl() {
   try {
+    console.log('[WhitelistManager] Getting current tab URL...');
+
+    // Try to get active tab
     const tabs = await browser.tabs.query({ active: true, currentWindow: true });
-    if (tabs && tabs.length > 0 && tabs[0].url) {
-      return tabs[0].url;
+    console.log('[WhitelistManager] Tabs query result:', tabs);
+
+    if (tabs && tabs.length > 0) {
+      const activeTab = tabs[0];
+      console.log('[WhitelistManager] Active tab:', activeTab);
+
+      if (activeTab.url) {
+        console.log('[WhitelistManager] Tab URL found:', activeTab.url);
+        return activeTab.url;
+      } else {
+        console.warn('[WhitelistManager] Tab found but has no URL');
+      }
+    } else {
+      console.warn('[WhitelistManager] No active tab found');
     }
-    console.warn('No active tab found or tab has no URL');
+
     return null;
   } catch (error) {
-    console.error('Error getting current tab URL:', error);
+    console.error('[WhitelistManager] Error getting current tab URL:', error);
+    console.error('[WhitelistManager] Error details:', error.message, error.stack);
     return null;
   }
 }
@@ -257,20 +273,30 @@ async function getCurrentTabUrl() {
  */
 async function getCurrentTabDomain() {
   try {
+    console.log('[WhitelistManager] Getting current tab domain...');
     const url = await getCurrentTabUrl();
-    if (url) {
-      // Handle special URLs
-      if (url.startsWith('chrome://') || url.startsWith('about:') ||
-          url.startsWith('safari://') || url.startsWith('safari-extension://')) {
-        return 'Browser Page';
-      }
 
-      const domain = extractDomain(url);
-      return domain || 'Unknown';
+    if (!url) {
+      console.log('[WhitelistManager] No URL available');
+      return 'No Active Tab';
     }
-    return 'No Active Tab';
+
+    console.log('[WhitelistManager] Processing URL:', url);
+
+    // Handle special URLs
+    if (url.startsWith('chrome://') || url.startsWith('about:') ||
+        url.startsWith('safari://') || url.startsWith('safari-extension://') ||
+        url.startsWith('edge://') || url.startsWith('opera://')) {
+      console.log('[WhitelistManager] Special browser page detected');
+      return 'Browser Page';
+    }
+
+    const domain = extractDomain(url);
+    console.log('[WhitelistManager] Extracted domain:', domain);
+    return domain || 'Unknown';
   } catch (error) {
-    console.error('Error getting current tab domain:', error);
+    console.error('[WhitelistManager] Error getting current tab domain:', error);
+    console.error('[WhitelistManager] Error details:', error.message, error.stack);
     return 'Error';
   }
 }

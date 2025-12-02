@@ -68,7 +68,10 @@ browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
           break;
 
         case 'getCurrentSite':
+          console.log('[Background] getCurrentSite action called');
           const currentDomain = await getCurrentTabDomain();
+          console.log('[Background] Current domain:', currentDomain);
+
           if (currentDomain && currentDomain !== 'Error') {
             // Don't check whitelist for special pages
             if (currentDomain === 'Browser Page' || currentDomain === 'No Active Tab') {
