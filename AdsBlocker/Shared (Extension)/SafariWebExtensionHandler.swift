@@ -39,11 +39,12 @@ class SafariWebExtensionHandler: NSObject, NSExtensionRequestHandling {
 
             switch action {
             case "getStatistics":
-                // The extension will handle this via background script
-                // This is a passthrough to trigger background.js
+                // Request statistics from extension storage
+                // The background script should handle this and return via storage
                 responseData = [
                     "action": "getStatistics",
-                    "success": true
+                    "success": true,
+                    "message": "Statistics request received. Use browser.storage.local to retrieve."
                 ]
 
             case "ping":
@@ -52,6 +53,23 @@ class SafariWebExtensionHandler: NSObject, NSExtensionRequestHandling {
                     "success": true,
                     "message": "Native host is available"
                 ]
+
+            case "writeToAppGroup":
+                // Write data to App Group container for sharing with host app
+                if let data = messageDict["data"] as? [String: Any] {
+                    let written = writeToAppGroupContainer(data: data)
+                    responseData = [
+                        "action": "writeToAppGroup",
+                        "success": written,
+                        "message": written ? "Data written successfully" : "Failed to write data"
+                    ]
+                } else {
+                    responseData = [
+                        "action": "writeToAppGroup",
+                        "success": false,
+                        "error": "No data provided"
+                    ]
+                }
 
             default:
                 responseData = [
@@ -72,6 +90,28 @@ class SafariWebExtensionHandler: NSObject, NSExtensionRequestHandling {
         }
 
         context.completeRequest(returningItems: [ response ], completionHandler: nil)
+    }
+
+    // Helper function to write statistics to App Group container
+    private func writeToAppGroupContainer(data: [String: Any]) -> Bool {
+        guard let containerURL = FileManager.default.containerURL(
+            forSecurityApplicationGroupIdentifier: "group.com.orlproducts.AdsBlocker"
+        ) else {
+            os_log(.error, "Failed to get App Group container URL")
+            return false
+        }
+
+        let statisticsFile = containerURL.appendingPathComponent("statistics.json")
+
+        do {
+            let jsonData = try JSONSerialization.data(withJSONObject: data, options: .prettyPrinted)
+            try jsonData.write(to: statisticsFile, options: .atomic)
+            os_log(.default, "Statistics written to: %@", statisticsFile.path)
+            return true
+        } catch {
+            os_log(.error, "Failed to write statistics: %@", error.localizedDescription)
+            return false
+        }
     }
 
 }

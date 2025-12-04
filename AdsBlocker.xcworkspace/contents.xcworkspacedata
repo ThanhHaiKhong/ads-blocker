@@ -4,7 +4,4 @@
    <FileRef
       location = "group:AdsBlocker/AdsBlocker.xcodeproj">
    </FileRef>
-   <FileRef
-      location = "group:Features">
-   </FileRef>
 </Workspace>

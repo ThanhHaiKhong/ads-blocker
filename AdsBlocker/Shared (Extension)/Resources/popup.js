@@ -201,6 +201,14 @@ function setupEventListeners() {
       await handleAddTestStatistics();
     });
   }
+
+  // Sync to App Group button (developer tool)
+  const syncToAppButton = document.getElementById('sync-to-app');
+  if (syncToAppButton) {
+    syncToAppButton.addEventListener('click', async () => {
+      await handleSyncToApp();
+    });
+  }
 }
 
 /**
@@ -524,5 +532,52 @@ async function handleAddTestStatistics() {
   } catch (error) {
     console.error('Error adding test statistics:', error);
     showNotification('Error adding test statistics', true);
+  }
+}
+
+/**
+ * Handle sync to App Group (developer tool)
+ */
+async function handleSyncToApp() {
+  try {
+    console.log('[Popup] Manually syncing statistics to App Group...');
+
+    // Get current statistics
+    const statsResponse = await browser.runtime.sendMessage({
+      action: 'getStatistics'
+    });
+
+    if (!statsResponse.success) {
+      showNotification('Failed to get statistics', true);
+      return;
+    }
+
+    const stats = statsResponse.statistics;
+    console.log('[Popup] Current stats:', stats);
+
+    // Try to send via native messaging
+    try {
+      const nativeResponse = await browser.runtime.sendNativeMessage(
+        'application.id', // Safari will replace this
+        {
+          action: 'writeToAppGroup',
+          data: stats
+        }
+      );
+
+      console.log('[Popup] Native message response:', nativeResponse);
+
+      if (nativeResponse && nativeResponse.success) {
+        showNotification('Statistics synced to app!');
+      } else {
+        showNotification('Sync failed: ' + (nativeResponse?.error || 'Unknown error'), true);
+      }
+    } catch (nativeError) {
+      console.error('[Popup] Native messaging error:', nativeError);
+      showNotification('Native messaging not available: ' + nativeError.message, true);
+    }
+  } catch (error) {
+    console.error('[Popup] Error syncing to app:', error);
+    showNotification('Error: ' + error.message, true);
   }
 }

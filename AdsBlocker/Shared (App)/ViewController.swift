@@ -16,7 +16,7 @@ import SafariServices
 typealias PlatformViewController = NSViewController
 #endif
 
-let extensionBundleIdentifier = "com.thanhhaikhong.AdsBlocker.Extension"
+let extensionBundleIdentifier = "com.orlproducts.AdsBlocker.Extension"
 
 class ViewController: PlatformViewController, WKNavigationDelegate, WKScriptMessageHandler {
 
@@ -95,44 +95,42 @@ class ViewController: PlatformViewController, WKNavigationDelegate, WKScriptMess
     private func loadStatisticsFromExtension() {
         print("[App] Loading statistics from extension...")
 
-        // Get the extension's data container
+        // Get the App Group shared container
         guard let containerURL = FileManager.default.containerURL(
-            forSecurityApplicationGroupIdentifier: "group.com.thanhhaikhong.AdsBlocker"
+            forSecurityApplicationGroupIdentifier: "group.com.orlproducts.AdsBlocker"
         ) else {
             print("[App] Failed to get shared container URL")
-            // Try loading from local storage instead
             loadStatisticsFromLocalStorage()
             return
         }
 
-        let storageURL = containerURL.appendingPathComponent("Library/WebKit/WebsiteData/LocalStorage/safari-extension___\(extensionBundleIdentifier)")
+        let statisticsFile = containerURL.appendingPathComponent("statistics.json")
+        print("[App] Looking for statistics at: \(statisticsFile.path)")
 
-        print("[App] Looking for extension data at: \(storageURL.path)")
+        // Check if statistics file exists
+        if FileManager.default.fileExists(atPath: statisticsFile.path) {
+            do {
+                let data = try Data(contentsOf: statisticsFile)
+                if let statistics = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any] {
+                    print("[App] Successfully loaded statistics from App Group")
+                    updateWebViewWithStatistics(statistics)
+                    return
+                }
+            } catch {
+                print("[App] Error reading statistics file: \(error)")
+            }
+        } else {
+            print("[App] Statistics file does not exist yet")
+        }
 
-        // For now, we'll use a simpler approach - send a message to get statistics
-        // This would require the extension to expose statistics via native messaging
-        // For this phase, we'll use dummy data as a demonstration
-
-        let dummyStatistics: [String: Any] = [
-            "totalBlocked": 1234,
-            "blockedByRuleset": [
-                "ads_ruleset": 789,
-                "tracking_ruleset": 445
-            ]
-        ]
-
-        updateWebViewWithStatistics(dummyStatistics)
+        // Fallback to default statistics
+        loadStatisticsFromLocalStorage()
     }
 
     private func loadStatisticsFromLocalStorage() {
-        print("[App] Attempting to load from local storage...")
+        print("[App] Loading default statistics...")
 
-        // This is a placeholder - in a production app, you would:
-        // 1. Use App Groups to share data between app and extension
-        // 2. Or use native messaging to request data from the extension
-        // 3. Or use SFSafariExtension.getBaseURI() to access extension resources
-
-        let dummyStatistics: [String: Any] = [
+        let defaultStatistics: [String: Any] = [
             "totalBlocked": 0,
             "blockedByRuleset": [
                 "ads_ruleset": 0,
@@ -140,7 +138,7 @@ class ViewController: PlatformViewController, WKNavigationDelegate, WKScriptMess
             ]
         ]
 
-        updateWebViewWithStatistics(dummyStatistics)
+        updateWebViewWithStatistics(defaultStatistics)
     }
 
     private func updateWebViewWithStatistics(_ statistics: [String: Any]) {

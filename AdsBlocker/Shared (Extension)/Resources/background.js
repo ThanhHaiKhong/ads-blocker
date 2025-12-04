@@ -3,6 +3,7 @@ import {
   toggleRuleset,
   getRulesetPreferences,
   getStatistics,
+  saveStatistics,
   incrementBlockedCount,
   resetStatistics,
   getRulesetInfo,
@@ -183,12 +184,44 @@ if (browser.declarativeNetRequest.onRuleMatchedDebug) {
   }
 }
 
+// Helper function to sync statistics to App Group via native messaging
+async function syncStatisticsToAppGroup() {
+  try {
+    const stats = await getStatistics();
+    console.log('[Background] Syncing statistics to App Group:', stats);
+
+    // Send statistics to native host for writing to App Group
+    const response = await browser.runtime.sendNativeMessage(
+      'application.id', // This will be replaced by Safari
+      {
+        action: 'writeToAppGroup',
+        data: stats
+      }
+    );
+
+    if (response && response.success) {
+      console.log('[Background] Statistics synced to App Group successfully');
+    } else {
+      console.warn('[Background] Failed to sync statistics:', response);
+    }
+  } catch (error) {
+    // Native messaging might not be available on all platforms
+    console.log('[Background] Native messaging not available or error:', error.message);
+  }
+}
+
 // Periodic statistics sync (every 30 seconds)
 setInterval(async () => {
   try {
     const stats = await getStatistics();
     console.log('[Background] Current statistics:', stats);
+
+    // Sync to App Group for host app
+    await syncStatisticsToAppGroup();
   } catch (error) {
     console.error('[Background] Error syncing statistics:', error);
   }
 }, 30000);
+
+// Sync statistics immediately on startup
+syncStatisticsToAppGroup();
